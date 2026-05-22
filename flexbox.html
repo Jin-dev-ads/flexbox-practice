@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>森之小憩：Flexbox 溫暖配送員</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+TC:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #fdfbf7; /* 溫暖的米白色 */
+            color: #5d4037;
+            touch-action: manipulation;
+        }
+
+        .cozy-font {
+            font-family: 'ZCOOL KuaiLe', cursive;
+        }
+
+        /* 森林背景區 */
+        .forest-scene {
+            background: linear-gradient(to bottom, #e8f5e9 0%, #c8e6c9 100%);
+            border: 8px solid #8d6e63;
+            border-radius: 2.5rem;
+            position: relative;
+            height: 350px;
+            box-shadow: 0 15px 30px rgba(141, 110, 99, 0.2);
+            overflow: hidden;
+        }
+
+        /* 角色：小兔子 */
+        .character-rabbit {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 4rem;
+            transition: all 0.5s ease;
+            z-index: 20;
+        }
+
+        /* 目標區域（小兔子的手部位置） */
+        .target-box {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            /* 這是第一關的答案：右下角 */
+            justify-content: flex-end;
+            align-items: flex-end;
+            padding: 40px;
+            pointer-events: none;
+        }
+
+        .target-glow {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.4);
+            border: 3px dashed white;
+            border-radius: 1.5rem;
+        }
+
+        /* 配送容器 */
+        #delivery-container {
+            display: flex;
+            height: 100%;
+            padding: 40px;
+            transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .item-to-deliver {
+            font-size: 3.5rem;
+            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.1));
+            z-index: 30;
+        }
+
+        /* 碎片按鈕樣式 */
+        .token-chip {
+            background: #fff;
+            border: 2px solid #d7ccc8;
+            padding: 10px 16px;
+            border-radius: 1rem;
+            font-family: monospace;
+            font-size: 0.9rem;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #d7ccc8;
+            transition: all 0.1s;
+        }
+
+        .token-chip:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #d7ccc8;
+        }
+
+        /* 成功動畫 */
+        @keyframes rabbit-jump {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-30px) rotate(15deg); }
+        }
+        .jump-joy { animation: rabbit-jump 0.5s infinite; }
+
+        @keyframes heart-pop {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 0; }
+        }
+        .heart {
+            position: absolute;
+            color: #e91e63;
+            font-size: 1.5rem;
+            animation: heart-pop 1s ease-out forwards;
+        }
+
+        .code-slot {
+            background: #4e342e;
+            color: #d7ccc8;
+            min-height: 80px;
+            border-radius: 1.2rem;
+            padding: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+    </style>
+</head>
+<body class="max-w-md mx-auto p-4 flex flex-col min-h-screen">
+
+    <header class="text-center py-6">
+        <h1 class="cozy-font text-3xl text-brown-800">森之小憩 🌿</h1>
+        <p class="text-sm text-stone-500 mt-2 italic">「小兔子忘了拿灑水壺，快幫她送到手邊吧！」</p>
+    </header>
+
+    <!-- 遊戲場景 -->
+    <div class="forest-scene mb-6">
+        <!-- 裝飾草叢 -->
+        <div class="absolute bottom-0 left-0 text-4xl opacity-40">🌿🌱🍃</div>
+        
+        <!-- 目標引導 -->
+        <div class="target-box">
+            <div class="target-glow"></div>
+        </div>
+
+        <!-- 小兔子角色 -->
+        <div id="rabbit" class="character-rabbit">🐰</div>
+        
+        <!-- 配送容器 -->
+        <div id="delivery-container">
+            <div id="deliver-item" class="item-to-deliver">🚿</div>
+        </div>
+
+        <!-- 愛心發散層 -->
+        <div id="heart-container" class="absolute inset-0 pointer-events-none"></div>
+    </div>
+
+    <!-- 拼字區 -->
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 mb-6">
+        <div class="flex justify-between items-center mb-2">
+            <span class="text-xs font-bold text-stone-400">組裝配送指令：</span>
+            <button onclick="clearAll()" class="text-xs text-red-400 hover:underline">重新打包</button>
+        </div>
+        <div id="code-output" class="code-slot">
+            <span class="text-stone-500 text-xs">// 點選下方碎片開始...</span>
+        </div>
+    </div>
+
+    <!-- 碎片選單 -->
+    <div class="bg-stone-100/50 p-4 rounded-3xl border-2 border-dashed border-stone-200">
+        <div id="token-pool" class="flex flex-wrap gap-3 justify-center">
+            <!-- 由 JS 生成 -->
+        </div>
+    </div>
+
+    <footer class="mt-8 mb-4">
+        <button id="send-btn" class="w-full bg-[#6d4c41] hover:bg-[#5d4037] text-white font-bold py-4 rounded-2xl shadow-xl active:scale-95 transition-all text-lg">
+            確認送達 🎁
+        </button>
+    </footer>
+
+    <!-- 成功畫面 -->
+    <div id="success-overlay" class="fixed inset-0 bg-[#3e2723]/90 hidden flex-col items-center justify-center z-50 text-white p-10 text-center">
+        <div class="text-7xl mb-6">🌸🐰💖</div>
+        <h2 class="cozy-font text-3xl mb-2">小兔子開心地笑了！</h2>
+        <p class="mb-8 opacity-80">多虧妳的 Flexbox 技巧，花園的植物都能喝到水了。</p>
+        <div class="bg-white/10 p-4 rounded-2xl mb-8">
+            <p class="text-xs uppercase tracking-widest text-amber-200">獲得獎勵</p>
+            <p class="text-lg font-bold">⭐ 溫暖配送員勳章 ⭐</p>
+        </div>
+        <button onclick="location.reload()" class="bg-[#8d6e63] px-12 py-3 rounded-full font-bold text-lg">繼續幫助下一位朋友</button>
+    </div>
+
+    <script>
+        const tokens = ['justify-content', ':', 'flex-end', ';', 'align-items', ':', 'flex-end', ';'];
+        let selections = [];
+
+        const container = document.getElementById('delivery-container');
+        const codeOutput = document.getElementById('code-output');
+        const rabbit = document.getElementById('rabbit');
+        const heartContainer = document.getElementById('heart-container');
+
+        // 1. 初始化按鈕
+        function init() {
+            const pool = document.getElementById('token-pool');
+            const shuffled = [...tokens].sort(() => Math.random() - 0.5);
+            pool.innerHTML = '';
+            shuffled.forEach(t => {
+                const b = document.createElement('button');
+                b.className = 'token-chip';
+                b.innerText = t;
+                b.onclick = () => {
+                    selections.push(t);
+                    update();
+                };
+                pool.appendChild(b);
+            });
+        }
+
+        // 2. 更新顯示與樣式
+        function update() {
+            if (selections.length === 0) {
+                codeOutput.innerHTML = '<span class="text-stone-500 text-xs">// 點選下方碎片開始...</span>';
+            } else {
+                codeOutput.innerHTML = '';
+                selections.forEach((t, i) => {
+                    const s = document.createElement('span');
+                    s.className = 'bg-[#5d4037] text-[#ffccbc] px-2 py-1 rounded text-sm font-mono cursor-pointer';
+                    s.innerText = t;
+                    s.onclick = () => {
+                        selections.splice(i, 1);
+                        update();
+                    };
+                    codeOutput.appendChild(s);
+                });
+            }
+
+            // 套用 Flex
+            container.style.justifyContent = '';
+            container.style.alignItems = '';
+            const css = selections.join(' ');
+            const parts = css.split(';');
+            parts.forEach(p => {
+                const [prop, val] = p.split(':');
+                if (prop && val) container.style[prop.trim()] = val.trim();
+            });
+        }
+
+        function clearAll() {
+            selections = [];
+            update();
+        }
+
+        // 3. 檢查成功
+        document.getElementById('send-btn').addEventListener('click', () => {
+            const code = selections.join('').replace(/\s/g, '');
+            // 檢查是否符合 flex-end, flex-end
+            const isCorrect = code.includes('justify-content:flex-end;') && 
+                             code.includes('align-items:flex-end;');
+
+            if (isCorrect) {
+                // 觸發驚喜動畫
+                rabbit.classList.add('jump-joy');
+                for(let i=0; i<10; i++) {
+                    setTimeout(createHeart, i * 150);
+                }
+                
+                setTimeout(() => {
+                    document.getElementById('success-overlay').classList.replace('hidden', 'flex');
+                }, 2000);
+            } else {
+                const btn = document.getElementById('send-btn');
+                btn.innerText = "物品還沒送到手上喔...";
+                btn.classList.add('bg-orange-800');
+                setTimeout(() => {
+                    btn.innerText = "確認送達 🎁";
+                    btn.classList.remove('bg-orange-800');
+                }, 1500);
+            }
+        });
+
+        function createHeart() {
+            const h = document.createElement('div');
+            h.className = 'heart';
+            h.innerText = '❤';
+            h.style.left = (Math.random() * 40 + 50) + '%';
+            h.style.top = (Math.random() * 40 + 50) + '%';
+            heartContainer.appendChild(h);
+            setTimeout(() => h.remove(), 1000);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
