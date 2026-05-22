@@ -3,20 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>森之小憩：Flexbox 溫暖配送員</title>
+    <title>森之小憩：Flexbox 魔法學堂</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+TC:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@700&display=swap');
         
         body {
             font-family: 'Noto Sans TC', sans-serif;
-            background-color: #fdfbf7; /* 溫暖的米白色 */
+            background-color: #fdfbf7;
             color: #5d4037;
             touch-action: manipulation;
+            overflow-x: hidden;
         }
 
         .cozy-font {
             font-family: 'ZCOOL KuaiLe', cursive;
+        }
+
+        .idiom-font {
+            font-family: 'Noto Serif TC', serif;
         }
 
         /* 森林背景區 */
@@ -30,51 +35,27 @@
             overflow: hidden;
         }
 
-        /* 角色：小兔子 */
-        .character-rabbit {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            font-size: 4rem;
-            transition: all 0.5s ease;
-            z-index: 20;
-        }
-
-        /* 目標區域（小兔子的手部位置） */
-        .target-box {
+        /* 共用的 Flex 容器：確保目標和配送物都在同一個座標系 */
+        .flex-layer {
             position: absolute;
             inset: 0;
             display: flex;
-            /* 這是第一關的答案：右下角 */
-            justify-content: flex-end;
-            align-items: flex-end;
-            padding: 40px;
+            padding: 30px; /* 留出邊距 */
+        }
+
+        /* 目標區域層 (唯讀，不可點擊) */
+        #target-box {
             pointer-events: none;
+            z-index: 10;
         }
 
-        .target-glow {
-            width: 80px;
-            height: 80px;
-            background: rgba(255, 255, 255, 0.4);
-            border: 3px dashed white;
-            border-radius: 1.5rem;
-        }
-
-        /* 配送容器 */
+        /* 配送物品層 */
         #delivery-container {
-            display: flex;
-            height: 100%;
-            padding: 40px;
+            z-index: 20;
             transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
-        .item-to-deliver {
-            font-size: 3.5rem;
-            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.1));
-            z-index: 30;
-        }
-
-        /* 碎片按鈕樣式 */
+        /* 碎片按鈕 */
         .token-chip {
             background: #fff;
             border: 2px solid #d7ccc8;
@@ -82,6 +63,7 @@
             border-radius: 1rem;
             font-family: monospace;
             font-size: 0.9rem;
+            font-weight: bold;
             cursor: pointer;
             box-shadow: 0 4px 0 #d7ccc8;
             transition: all 0.1s;
@@ -92,12 +74,12 @@
             box-shadow: 0 1px 0 #d7ccc8;
         }
 
-        /* 成功動畫 */
-        @keyframes rabbit-jump {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-30px) rotate(15deg); }
+        /* 動畫效果 */
+        @keyframes item-jump {
+            0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+            50% { transform: translateY(-25px) rotate(10deg) scale(1.1); }
         }
-        .jump-joy { animation: rabbit-jump 0.5s infinite; }
+        .jump-joy { animation: item-jump 0.5s infinite; }
 
         @keyframes heart-pop {
             0% { transform: scale(0); opacity: 0; }
@@ -109,6 +91,7 @@
             color: #e91e63;
             font-size: 1.5rem;
             animation: heart-pop 1s ease-out forwards;
+            z-index: 30;
         }
 
         .code-slot {
@@ -122,90 +105,232 @@
             gap: 8px;
             align-items: center;
         }
+
+        /* 畫面切換特效 */
+        .fade-out { opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
+        .slide-in { animation: slideUp 0.6s ease forwards; }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
     </style>
 </head>
-<body class="max-w-md mx-auto p-4 flex flex-col min-h-screen">
+<body class="w-full min-h-screen flex justify-center bg-[#fdfbf7]">
 
-    <header class="text-center py-6">
-        <h1 class="cozy-font text-3xl text-brown-800">森之小憩 🌿</h1>
-        <p class="text-sm text-stone-500 mt-2 italic">「小兔子忘了拿灑水壺，快幫她送到手邊吧！」</p>
-    </header>
-
-    <!-- 遊戲場景 -->
-    <div class="forest-scene mb-6">
-        <!-- 裝飾草叢 -->
-        <div class="absolute bottom-0 left-0 text-4xl opacity-40">🌿🌱🍃</div>
-        
-        <!-- 目標引導 -->
-        <div class="target-box">
-            <div class="target-glow"></div>
+    <!-- ================= 1. 歡迎首頁 ================= -->
+    <div id="welcome-screen" class="max-w-md w-full p-6 flex flex-col min-h-screen transition-opacity duration-500 z-50 absolute bg-[#fdfbf7]">
+        <div class="text-center mt-8 mb-6">
+            <div class="text-6xl mb-4">🐰🎒</div>
+            <h1 class="cozy-font text-4xl text-brown-800 mb-2">森之小憩</h1>
+            <p class="text-stone-500 font-bold tracking-wider">Flexbox 魔法學堂</p>
         </div>
 
-        <!-- 小兔子角色 -->
-        <div id="rabbit" class="character-rabbit">🐰</div>
-        
-        <!-- 配送容器 -->
-        <div id="delivery-container">
-            <div id="deliver-item" class="item-to-deliver">🚿</div>
+        <div class="bg-[#efebe5] rounded-3xl p-5 mb-4 shadow-inner text-sm text-stone-600 leading-relaxed border-2 border-stone-200">
+            <p class="mb-2 text-base font-bold text-stone-700">歡迎來到森林小學！</p>
+            <p>本次測驗共有 <strong class="text-rose-600 text-lg">3</strong> 個關卡，結合了日常、國文與數學。</p>
+            <p>請使用 <span class="text-emerald-700 font-bold">justify-content</span> 與 <span class="text-amber-700 font-bold">align-items</span> 語法來完成挑戰！</p>
         </div>
 
-        <!-- 愛心發散層 -->
-        <div id="heart-container" class="absolute inset-0 pointer-events-none"></div>
-    </div>
+        <!-- 語法簡介手冊 -->
+        <div class="bg-white rounded-3xl p-5 mb-6 shadow-sm border border-stone-200">
+            <h2 class="font-bold text-stone-700 mb-3 flex items-center gap-2 border-b pb-2">
+                📖 魔法語法速查表
+            </h2>
+            
+            <div class="mb-3">
+                <h3 class="font-bold text-emerald-800 mb-1 text-sm">1. 水平移動 (左右)</h3>
+                <p class="font-mono bg-emerald-50 text-emerald-700 px-2 py-1 rounded inline-block text-xs mb-1">justify-content :</p>
+                <ul class="text-xs text-stone-600 list-disc ml-5 space-y-1">
+                    <li><code class="font-bold">flex-start</code>：停在最左邊</li>
+                    <li><code class="font-bold">center</code>：停在正中間</li>
+                    <li><code class="font-bold">flex-end</code>：停在最右邊</li>
+                </ul>
+            </div>
 
-    <!-- 拼字區 -->
-    <div class="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 mb-6">
-        <div class="flex justify-between items-center mb-2">
-            <span class="text-xs font-bold text-stone-400">組裝配送指令：</span>
-            <button onclick="clearAll()" class="text-xs text-red-400 hover:underline">重新打包</button>
+            <div>
+                <h3 class="font-bold text-amber-800 mb-1 text-sm">2. 垂直移動 (上下)</h3>
+                <p class="font-mono bg-amber-50 text-amber-700 px-2 py-1 rounded inline-block text-xs mb-1">align-items :</p>
+                <ul class="text-xs text-stone-600 list-disc ml-5 space-y-1">
+                    <li><code class="font-bold">flex-start</code>：停在最上面</li>
+                    <li><code class="font-bold">center</code>：停在正中間</li>
+                    <li><code class="font-bold">flex-end</code>：停在最下面</li>
+                </ul>
+            </div>
         </div>
-        <div id="code-output" class="code-slot">
-            <span class="text-stone-500 text-xs">// 點選下方碎片開始...</span>
-        </div>
-    </div>
 
-    <!-- 碎片選單 -->
-    <div class="bg-stone-100/50 p-4 rounded-3xl border-2 border-dashed border-stone-200">
-        <div id="token-pool" class="flex flex-wrap gap-3 justify-center">
-            <!-- 由 JS 生成 -->
-        </div>
-    </div>
-
-    <footer class="mt-8 mb-4">
-        <button id="send-btn" class="w-full bg-[#6d4c41] hover:bg-[#5d4037] text-white font-bold py-4 rounded-2xl shadow-xl active:scale-95 transition-all text-lg">
-            確認送達 🎁
+        <button id="start-game-btn" class="mt-auto mb-8 w-full bg-[#6d4c41] hover:bg-[#5d4037] text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all text-lg">
+            開始挑戰 🚀
         </button>
-    </footer>
+    </div>
 
-    <!-- 成功畫面 -->
-    <div id="success-overlay" class="fixed inset-0 bg-[#3e2723]/90 hidden flex-col items-center justify-center z-50 text-white p-10 text-center">
-        <div class="text-7xl mb-6">🌸🐰💖</div>
-        <h2 class="cozy-font text-3xl mb-2">小兔子開心地笑了！</h2>
-        <p class="mb-8 opacity-80">多虧妳的 Flexbox 技巧，花園的植物都能喝到水了。</p>
-        <div class="bg-white/10 p-4 rounded-2xl mb-8">
-            <p class="text-xs uppercase tracking-widest text-amber-200">獲得獎勵</p>
-            <p class="text-lg font-bold">⭐ 溫暖配送員勳章 ⭐</p>
+    <!-- ================= 2. 遊戲主畫面 ================= -->
+    <div id="game-screen" class="max-w-md w-full p-4 flex flex-col min-h-screen hidden opacity-0 z-0 absolute bg-[#fdfbf7]">
+        <header class="text-center py-4 relative">
+            <h1 class="cozy-font text-2xl text-brown-800" id="level-title">關卡 1</h1>
+            <p class="text-xs text-stone-500 mt-1 font-bold" id="level-desc">目標：...</p>
+            <button id="help-btn" class="absolute right-2 top-4 text-stone-400 hover:text-stone-600 font-bold text-sm">📖 語法表</button>
+        </header>
+
+        <!-- 遊戲場景 -->
+        <div class="forest-scene mb-4 relative">
+            <div class="absolute bottom-0 left-0 text-4xl opacity-40 select-none">🌿🌱🍃</div>
+            
+            <!-- 目標層 (會根據關卡資料設定 Flex) -->
+            <div id="target-box" class="flex-layer">
+                <!-- 由 JS 載入目標 (小兔子或成語框) -->
+            </div>
+            
+            <!-- 配送層 (玩家操作 Flex) -->
+            <div id="delivery-container" class="flex-layer">
+                <div id="deliver-item" class="transition-transform duration-300">
+                    <!-- 由 JS 載入物品 (灑水壺或字塊) -->
+                </div>
+            </div>
+            
+            <div id="heart-container" class="absolute inset-0 pointer-events-none"></div>
         </div>
-        <button onclick="location.reload()" class="bg-[#8d6e63] px-12 py-3 rounded-full font-bold text-lg">繼續幫助下一位朋友</button>
+
+        <!-- 拼字區 -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 mb-4">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-xs font-bold text-stone-400">組裝魔法指令：</span>
+                <button onclick="clearAll()" class="text-xs text-red-400 hover:underline">重新打包 ↺</button>
+            </div>
+            <div id="code-output" class="code-slot"></div>
+        </div>
+
+        <!-- 碎片選單 -->
+        <div class="bg-stone-100/50 p-4 rounded-3xl border-2 border-dashed border-stone-200 flex-grow">
+            <div id="token-pool" class="flex flex-wrap gap-2 justify-center"></div>
+        </div>
+
+        <footer class="mt-4 mb-4">
+            <button id="send-btn" class="w-full bg-[#6d4c41] hover:bg-[#5d4037] text-white font-bold py-4 rounded-2xl shadow-xl active:scale-95 transition-all text-lg">
+                確認送出 🎁
+            </button>
+        </footer>
+    </div>
+
+    <!-- ================= 3. 成功畫面 ================= -->
+    <div id="success-overlay" class="fixed inset-0 bg-[#3e2723]/95 hidden flex-col items-center justify-center z-50 text-white p-10 text-center">
+        <div id="success-emoji" class="text-7xl mb-6">🌸✨💖</div>
+        <h2 class="cozy-font text-3xl mb-2" id="success-title">太棒了！</h2>
+        <p class="mb-8 opacity-80 text-sm" id="success-message">任務完美達成！</p>
+        <button id="next-level-btn" class="bg-[#8d6e63] hover:bg-[#a1887f] px-10 py-3 rounded-full font-bold text-lg shadow-lg active:scale-95 transition-all">
+            前往下一關 ➔
+        </button>
     </div>
 
     <script>
-        const tokens = ['justify-content', ':', 'flex-end', ';', 'align-items', ':', 'flex-end', ';'];
+        // ================= 關卡資料庫 =================
+        const levels = [
+            {
+                title: "關卡 1：送灑水壺給小兔",
+                desc: "小兔子在「右下角」，請幫她把灑水壺送過去！",
+                targetJ: "flex-end",
+                targetA: "flex-end",
+                successMsg: "小兔子拿到灑水壺，開心地笑了！",
+                targetHtml: `
+                    <div class="relative flex items-center justify-center">
+                        <div class="absolute w-[85px] h-[85px] bg-white/40 border-4 border-dashed border-white rounded-2xl"></div>
+                        <div class="text-[4rem] z-10">🐰</div>
+                    </div>
+                `,
+                itemHtml: '<div class="text-[3.5rem] drop-shadow-md">🚿</div>',
+                tokens: ['justify-content', ':', 'flex-end', ';', 'align-items', ':', 'flex-end', ';', 'center']
+            },
+            {
+                title: "關卡 2：成語拼拼看",
+                desc: "國文時間！請將字塊移動到「正中央」的空格裡！",
+                targetJ: "center",
+                targetA: "center",
+                successMsg: "字義完全通順，守株待兔！",
+                // 為了讓空格精準置中，左右兩側的字寬度必須設定為相同 (w-[80px])
+                targetHtml: `
+                    <div class="flex items-center text-3xl font-bold text-stone-700 bg-white/70 py-4 rounded-3xl shadow-sm border-2 border-stone-200 idiom-font">
+                        <span class="w-[80px] text-right pr-3">守</span>
+                        <div class="w-[65px] h-[65px] border-4 border-dashed border-stone-500 rounded-xl bg-white/50"></div>
+                        <span class="w-[80px] text-left pl-3 tracking-widest">待兔</span>
+                    </div>
+                `,
+                // 移動的字塊
+                itemHtml: '<div class="w-[65px] h-[65px] bg-[#d4a373] border-4 border-[#b58452] text-white flex items-center justify-center rounded-xl text-3xl font-bold shadow-lg idiom-font">株</div>',
+                tokens: ['justify-content', ':', 'center', ';', 'align-items', ':', 'center', ';', 'flex-start']
+            },
+            {
+                title: "關卡 3：數字加一加",
+                desc: "數學時間！算式在「右上角」，請填入正確的解答。",
+                targetJ: "flex-end",   // 水平靠右
+                targetA: "flex-start", // 垂直靠上
+                successMsg: "3 + 5 = 8，計算完全正確！",
+                // 數學算式的框 (在右上角)
+                targetHtml: `
+                    <div class="flex items-center text-4xl font-bold text-stone-700 bg-white/70 px-5 py-3 rounded-2xl shadow-sm border-2 border-stone-200 font-mono">
+                        <span class="pr-3 tracking-wider">3+5=</span>
+                        <div class="w-[65px] h-[65px] border-4 border-dashed border-stone-500 rounded-xl bg-white/50"></div>
+                    </div>
+                `,
+                // 移動的答案 (數字 8)
+                itemHtml: '<div class="w-[65px] h-[65px] bg-[#3b82f6] border-4 border-[#2563eb] text-white flex items-center justify-center rounded-xl text-4xl font-bold shadow-lg font-mono">8</div>',
+                tokens: ['justify-content', ':', 'flex-end', ';', 'align-items', ':', 'flex-start', ';', 'center']
+            }
+        ];
+
+        let currentLevelIndex = 0;
         let selections = [];
 
+        // DOM 元素
         const container = document.getElementById('delivery-container');
+        const targetBox = document.getElementById('target-box');
         const codeOutput = document.getElementById('code-output');
-        const rabbit = document.getElementById('rabbit');
         const heartContainer = document.getElementById('heart-container');
+        const deliverItem = document.getElementById('deliver-item');
+        const successOverlay = document.getElementById('success-overlay');
 
-        // 1. 初始化按鈕
-        function init() {
+        // --- 畫面切換 ---
+        document.getElementById('start-game-btn').addEventListener('click', () => {
+            document.getElementById('welcome-screen').classList.add('fade-out');
+            setTimeout(() => {
+                document.getElementById('welcome-screen').classList.add('hidden');
+                document.getElementById('game-screen').classList.remove('hidden');
+                document.getElementById('game-screen').classList.add('slide-in');
+                loadLevel(0);
+            }, 500);
+        });
+
+        document.getElementById('help-btn').addEventListener('click', () => {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('slide-in');
+            document.getElementById('welcome-screen').classList.remove('hidden', 'fade-out');
+        });
+
+        // --- 載入關卡 ---
+        function loadLevel(index) {
+            currentLevelIndex = index;
+            const levelData = levels[index];
+
+            // 1. 更新標題
+            document.getElementById('level-title').innerText = levelData.title;
+            document.getElementById('level-desc').innerText = levelData.desc;
+
+            // 2. 佈置目標與物品
+            targetBox.innerHTML = levelData.targetHtml;
+            targetBox.style.justifyContent = levelData.targetJ;
+            targetBox.style.alignItems = levelData.targetA;
+
+            deliverItem.innerHTML = levelData.itemHtml;
+            deliverItem.classList.remove('jump-joy'); // 移除跳躍動畫
+
+            // 3. 重設玩家的程式碼
+            clearAll();
+
+            // 4. 生成按鈕碎片
             const pool = document.getElementById('token-pool');
-            const shuffled = [...tokens].sort(() => Math.random() - 0.5);
+            const shuffled = [...levelData.tokens].sort(() => Math.random() - 0.5);
             pool.innerHTML = '';
             shuffled.forEach(t => {
                 const b = document.createElement('button');
-                b.className = 'token-chip';
+                b.className = 'token-chip text-stone-700';
                 b.innerText = t;
                 b.onclick = () => {
                     selections.push(t);
@@ -215,7 +340,7 @@
             });
         }
 
-        // 2. 更新顯示與樣式
+        // --- 程式碼組裝與預覽 ---
         function update() {
             if (selections.length === 0) {
                 codeOutput.innerHTML = '<span class="text-stone-500 text-xs">// 點選下方碎片開始...</span>';
@@ -223,7 +348,7 @@
                 codeOutput.innerHTML = '';
                 selections.forEach((t, i) => {
                     const s = document.createElement('span');
-                    s.className = 'bg-[#5d4037] text-[#ffccbc] px-2 py-1 rounded text-sm font-mono cursor-pointer';
+                    s.className = 'bg-[#5d4037] text-[#ffccbc] px-2 py-1 rounded text-sm font-mono cursor-pointer active:scale-95 transition-transform';
                     s.innerText = t;
                     s.onclick = () => {
                         selections.splice(i, 1);
@@ -233,7 +358,7 @@
                 });
             }
 
-            // 套用 Flex
+            // 即時預覽物品移動
             container.style.justifyContent = '';
             container.style.alignItems = '';
             const css = selections.join(' ');
@@ -249,31 +374,58 @@
             update();
         }
 
-        // 3. 檢查成功
+        // --- 檢查通關 ---
         document.getElementById('send-btn').addEventListener('click', () => {
+            const levelData = levels[currentLevelIndex];
             const code = selections.join('').replace(/\s/g, '');
-            // 檢查是否符合 flex-end, flex-end
-            const isCorrect = code.includes('justify-content:flex-end;') && 
-                             code.includes('align-items:flex-end;');
+            
+            // 判斷是否符合本關目標
+            const expectedJ = `justify-content:${levelData.targetJ};`;
+            const expectedA = `align-items:${levelData.targetA};`;
+            const isCorrect = code.includes(expectedJ) && code.includes(expectedA);
 
             if (isCorrect) {
-                // 觸發驚喜動畫
-                rabbit.classList.add('jump-joy');
-                for(let i=0; i<10; i++) {
+                // 成功：物品跳躍與噴發愛心
+                deliverItem.classList.add('jump-joy');
+                for(let i = 0; i < 10; i++) {
                     setTimeout(createHeart, i * 150);
                 }
                 
                 setTimeout(() => {
-                    document.getElementById('success-overlay').classList.replace('hidden', 'flex');
+                    successOverlay.classList.replace('hidden', 'flex');
+                    if (currentLevelIndex === levels.length - 1) {
+                        // 如果是最後一關，顯示全部破關的祝賀
+                        document.getElementById('success-emoji').innerText = "🎓✨";
+                        document.getElementById('success-title').innerText = "全部通關！";
+                        document.getElementById('success-message').innerText = "妳已經是 Flexbox 空間魔法大師了！";
+                        document.getElementById('next-level-btn').innerText = "重新回味 ↺";
+                    } else {
+                        // 否則顯示該關卡的專屬過關訊息
+                        document.getElementById('success-emoji').innerText = "🌸✨";
+                        document.getElementById('success-title').innerText = "完全吻合！";
+                        document.getElementById('success-message').innerText = levelData.successMsg;
+                        document.getElementById('next-level-btn').innerText = "前往下一關 ➔";
+                    }
                 }, 2000);
             } else {
+                // 失敗提示
                 const btn = document.getElementById('send-btn');
-                btn.innerText = "物品還沒送到手上喔...";
-                btn.classList.add('bg-orange-800');
+                btn.innerText = "位置好像沒對準喔...";
+                btn.classList.replace('bg-[#6d4c41]', 'bg-orange-700');
                 setTimeout(() => {
-                    btn.innerText = "確認送達囉 🎁";
-                    btn.classList.remove('bg-orange-800');
+                    btn.innerText = "確認送出 🎁";
+                    btn.classList.replace('bg-orange-700', 'bg-[#6d4c41]');
                 }, 1500);
+            }
+        });
+
+        // 點擊「前往下一關」
+        document.getElementById('next-level-btn').addEventListener('click', () => {
+            successOverlay.classList.replace('flex', 'hidden');
+            if (currentLevelIndex < levels.length - 1) {
+                loadLevel(currentLevelIndex + 1);
+            } else {
+                loadLevel(0); // 全破後重頭開始
             }
         });
 
@@ -281,13 +433,11 @@
             const h = document.createElement('div');
             h.className = 'heart';
             h.innerText = '❤';
-            h.style.left = (Math.random() * 40 + 50) + '%';
-            h.style.top = (Math.random() * 40 + 50) + '%';
+            h.style.left = (Math.random() * 60 + 20) + '%';
+            h.style.top = (Math.random() * 60 + 20) + '%';
             heartContainer.appendChild(h);
             setTimeout(() => h.remove(), 1000);
         }
-
-        window.onload = init;
     </script>
 </body>
 </html>
